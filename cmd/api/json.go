@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -23,6 +24,8 @@ func readJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	max_bytes := 1_048_578 // 1mb
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(max_bytes))
+
+	log.Print("READING FROM REQUEST")
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()

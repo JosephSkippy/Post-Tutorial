@@ -24,6 +24,11 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if err := Validate.Struct(payload); err != nil {
+		app.StatusBadRequest(w, r, err)
+		return
+	}
+
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,
@@ -31,11 +36,6 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 
 		// change after Auth
 		UserID: 1,
-	}
-
-	if err := Validate.Struct(payload); err != nil {
-		app.StatusBadRequest(w, r, err)
-		return
 	}
 
 	ctx := r.Context()
@@ -79,6 +79,15 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	comments, err := app.store.Comment.GetCommentByID(ctx, id)
+
+	if err != nil {
+		app.InternaServerError(w, r, err)
+		return
+	}
+
+	post.Comments = comments
 
 	if err := writeJSON(w, http.StatusOK, post); err != nil {
 		app.InternaServerError(w, r, err)
