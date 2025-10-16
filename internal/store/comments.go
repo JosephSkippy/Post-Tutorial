@@ -3,13 +3,14 @@ package store
 import (
 	"context"
 	"database/sql"
+	"log"
 )
 
 type Comment struct {
 	ID        int64  `json:"id"`
 	PostID    int64  `json:"post_id"`
 	UserID    int64  `json:"user_id"`
-	Comment   string `json:"comment"`
+	Comments  string `json:"comments"`
 	CreatedAt string `json:"created_at"`
 	User      User   `json:"user"`
 }
@@ -29,7 +30,7 @@ func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
 		query,
 		comment.PostID,
 		comment.UserID,
-		comment.Comment).Scan(
+		comment.Comments).Scan(
 		&comment.ID,
 		&comment.CreatedAt)
 
@@ -69,7 +70,7 @@ func (s *CommentStore) GetCommentByID(ctx context.Context, post_id int64) ([]Com
 		c := Comment{
 			User: User{},
 		}
-		err := rows.Scan(&c.ID, &c.PostID, &c.User.Username, &c.Comment, &c.CreatedAt, &c.User.ID)
+		err := rows.Scan(&c.ID, &c.PostID, &c.User.Username, &c.Comments, &c.CreatedAt, &c.User.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -77,4 +78,18 @@ func (s *CommentStore) GetCommentByID(ctx context.Context, post_id int64) ([]Com
 	}
 
 	return comments, nil
+}
+
+func (s *CommentStore) DeleteCommentByPostID(ctx context.Context, post_id int64) error {
+	query := `
+			DELETE FROM comments WHERE post_id = $1;
+	`
+	log.Printf("Attempting to delete comments for post_id: %d", post_id)
+
+	_, err := s.db.ExecContext(ctx, query, post_id)
+	if err != nil {
+		log.Printf("Error deleting comments: %v", err)
+		return err
+	}
+	return nil
 }
