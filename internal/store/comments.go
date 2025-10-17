@@ -1,17 +1,95 @@
 package store
 
 import (
+	"context"
 	"database/sql"
+	"log"
 )
 
 type Comment struct {
-	ID        int64
-	PostID    int64
-	UserID    int64
-	Comments  string
-	CreatedAt string
+	ID        int64  `json:"id"`
+	PostID    int64  `json:"post_id"`
+	UserID    int64  `json:"user_id"`
+	Comments  string `json:"comments"`
+	CreatedAt string `json:"created_at"`
+	User      User   `json:"user"`
 }
 
 type CommentStore struct {
 	db *sql.DB
+}
+
+func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
+	query := `
+			INSERT INTO comments (post_id, user_id, comments)
+			VALUES ($1, $2, $3) RETURNING id, created_at DESC
+	`
+
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		comment.PostID,
+		comment.UserID,
+		comment.Comments).Scan(
+		&comment.ID,
+		&comment.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (s *CommentStore) GetCommentByID(ctx context.Context, post_id int64) ([]Comment, error) {
+
+	query := `
+		SELECT
+				c.id, 
+				c.post_id,
+				u.username,
+				c.comments,
+				c.created_at, 
+				u.id
+			FROM comments c
+			JOIN users u ON u.id = c.user_id
+			WHERE c.post_id = $1
+			ORDER BY c.created_at DESC;
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, post_id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		c := Comment{
+			User: User{},
+		}
+		err := rows.Scan(&c.ID, &c.PostID, &c.User.Username, &c.Comments, &c.CreatedAt, &c.User.ID)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, c)
+	}
+
+	return comments, nil
+}
+
+func (s *CommentStore) DeleteCommentByPostID(ctx context.Context, post_id int64) error {
+	query := `
+			DELETE FROM comments WHERE post_id = $1;
+	`
+	log.Printf("Attempting to delete comments for post_id: %d", post_id)
+
+	_, err := s.db.ExecContext(ctx, query, post_id)
+	if err != nil {
+		log.Printf("Error deleting comments: %v", err)
+		return err
+	}
+	return nil
 }

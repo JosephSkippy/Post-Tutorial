@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -24,6 +25,8 @@ func readJSON(w http.ResponseWriter, r *http.Request, data any) error {
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(max_bytes))
 
+	log.Print("READING FROM REQUEST")
+
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
@@ -36,5 +39,11 @@ func writeJSONError(w http.ResponseWriter, status int, message string) error {
 	}
 
 	return writeJSON(w, status, &envelop{Error: message})
+}
 
+func (app *application) jsonResponse(w http.ResponseWriter, status int, data any) error {
+	type envelop struct {
+		Data any `json:"data"`
+	}
+	return writeJSON(w, status, &envelop{Data: data})
 }
