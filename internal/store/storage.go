@@ -21,8 +21,10 @@ type PostRepository interface {
 }
 
 type UserRepository interface {
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, tx *sql.Tx, user *User) error
 	GetUserbyID(ctx context.Context, id int64) (*User, error)
+	CreateandInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error
+	Activate(ctx context.Context, hashtoken string) error
 }
 
 type FollowersRepository interface {
