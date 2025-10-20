@@ -17,10 +17,19 @@ type PostRepository interface {
 	Get(ctx context.Context, id int64) (*Post, error)
 	DeletePost(ctx context.Context, id int64) (*Post, error)
 	UpdatePost(ctx context.Context, post *Post) error
+	GetFeed(ctx context.Context, user_id int64, fq PaginatedFeedQuery) (*[]Feed, error)
 }
 
 type UserRepository interface {
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, tx *sql.Tx, user *User) error
+	GetUserbyID(ctx context.Context, id int64) (*User, error)
+	CreateandInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error
+	Activate(ctx context.Context, hashtoken string) error
+}
+
+type FollowersRepository interface {
+	FollowUser(ctx context.Context, userID int64, followerID int64) error
+	UnfollowUser(ctx context.Context, userID int64, followerID int64) error
 }
 
 type CommentRepository interface {
@@ -30,15 +39,17 @@ type CommentRepository interface {
 }
 
 type Storage struct {
-	Posts   PostRepository
-	Users   UserRepository
-	Comment CommentRepository
+	Posts    PostRepository
+	Users    UserRepository
+	Comment  CommentRepository
+	Follower FollowersRepository
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Posts:   &PostsStore{db},
-		Users:   &UsersStore{db},
-		Comment: &CommentStore{db},
+		Posts:    &PostsStore{db},
+		Users:    &UsersStore{db},
+		Comment:  &CommentStore{db},
+		Follower: &FollowerStore{db},
 	}
 }

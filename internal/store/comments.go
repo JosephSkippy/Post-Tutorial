@@ -84,8 +84,6 @@ func (s *CommentStore) DeleteCommentByPostID(ctx context.Context, post_id int64)
 	query := `
 			DELETE FROM comments WHERE post_id = $1;
 	`
-	log.Printf("Attempting to delete comments for post_id: %d", post_id)
-
 	_, err := s.db.ExecContext(ctx, query, post_id)
 	if err != nil {
 		log.Printf("Error deleting comments: %v", err)

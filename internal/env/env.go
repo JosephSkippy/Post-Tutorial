@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func GetString(key, fallback string) string {
@@ -34,4 +36,19 @@ func GetInt(key string, fallback int) int {
 
 	return valInt
 
+}
+
+func GetDuration(key string, fallback time.Duration) time.Duration {
+	v, ok := os.LookupEnv(key)
+	if !ok || strings.TrimSpace(v) == "" {
+		return fallback
+	}
+	if d, err := time.ParseDuration(v); err == nil {
+		return d
+	}
+	if n, err := strconv.Atoi(v); err == nil {
+		return time.Duration(n) * 24 * time.Hour
+	}
+	// On parse error, use fallback
+	return fallback
 }

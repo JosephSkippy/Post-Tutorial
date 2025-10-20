@@ -5,21 +5,41 @@ import (
 	"net/http"
 	"time"
 
+	"tiago-udemy/internal/mailer"
 	"tiago-udemy/internal/store"
+
+	"tiago-udemy/docs" // this is required for swagger docs
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"go.uber.org/zap"
 )
 
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
+	mailer mailer.MailClient // this is the mailer interface
 }
 
 type config struct {
-	addr     string
-	dbConfig dbConfig
-	env      string
+	addr        string
+	dbConfig    dbConfig
+	env         string
+	apiURL      string
+	mail        mailConfig
+	frontendURL string
+}
+
+type mailConfig struct {
+	exp            time.Duration
+	fromEmail      string
+	mailTrapConfig mailTrapConfig
+}
+
+type mailTrapConfig struct {
+	apiKey string
 }
 
 type dbConfig struct {
@@ -44,7 +64,10 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
+		docsURL := fmt.Sprintf("%s/v1/swagger/doc.json", app.config.addr)
+		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 		r.Get("/health", app.healthCheckHandler)
+
 		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)
 			r.Route("/{postID}", func(r chi.Router) {
@@ -57,12 +80,37 @@ func (app *application) mount() http.Handler {
 		r.Route("/comments", func(r chi.Router) {
 			r.Post("/", app.createCommentHandler)
 		})
+
+		r.Route("/users", func(r chi.Router) {
+			r.Route("/{userID}", func(r chi.Router) {
+				r.Use(app.GetUserMiddlewareContext)
+				r.Get("/", app.getUserHandler)
+				r.Put("/follow", app.followUserHandler)
+				r.Put("/unfollow", app.unfollowUserHandler)
+
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Get("/feed", app.userFeedHandler)
+			})
+		})
+
+		//public route
+		r.Route("/authentication", func(r chi.Router) {
+			r.Post("/user", app.registerUserHandler)
+			r.Put("/activate/{token}", app.activateUserHandler)
+		})
+
 	})
 
 	return r
 }
 
 func (app *application) run(mux http.Handler) error {
+
+	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Host = app.config.apiURL
+	docs.SwaggerInfo.BasePath = "/v1"
 
 	srv := &http.Server{
 		Addr:         app.config.addr,

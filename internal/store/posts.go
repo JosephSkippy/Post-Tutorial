@@ -18,6 +18,12 @@ type Post struct {
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 	Comments  []Comment `json:"comments"`
+	User      User      `json:"user"`
+}
+
+type Feed struct {
+	Post         Post
+	CommentCount int64 `json:"comment_count"`
 }
 
 type PostsStore struct {
@@ -130,4 +136,80 @@ func (s *PostsStore) UpdatePost(ctx context.Context, post *Post) error {
 		}
 	}
 	return nil
+}
+
+func (s *PostsStore) GetFeed(ctx context.Context, user_id int64, fq PaginatedFeedQuery) (*[]Feed, error) {
+
+	query := `
+SELECT
+  p.id,
+  p.user_id,
+  p.title,
+  p.content,
+  p.created_at,
+  p.version,
+  p.tags,
+  u.username,
+  COUNT(c.id) AS comments_count
+FROM
+  posts p
+  JOIN users u ON u.id = p.user_id
+  LEFT JOIN followers f ON f.follower_id = p.user_id -- author
+  AND f.user_id = $1 -- viewer only
+  LEFT JOIN comments c ON c.post_id = p.id
+WHERE
+  (p.user_id = $1 -- my posts
+  OR f.user_id IS NOT NULL
+  )
+  AND
+  (p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%')
+  AND
+  (p.tags @> $5 OR $5 = '{}')
+GROUP BY
+  p.id,
+  u.username
+ORDER BY
+  p.created_at ` + fq.Sort + `
+LIMIT $2
+OFFSET $3;
+`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
+	defer cancel()
+
+	row, err := s.db.QueryContext(ctx, query, user_id, fq.Limit, fq.Offset, fq.Search, pq.Array(fq.Tags))
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	defer row.Close()
+
+	var feeds []Feed
+	for row.Next() {
+		var post Post
+		var feed Feed
+		err := row.Scan(
+			&post.ID,
+			&post.UserID,
+			&post.Title,
+			&post.Content,
+			&post.CreatedAt,
+			&post.Version,
+			pq.Array(&post.Tags),
+			&post.User.Username,
+			&feed.CommentCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		feed.Post = post
+		feeds = append(feeds, feed)
+	}
+
+	return &feeds, nil
 }
