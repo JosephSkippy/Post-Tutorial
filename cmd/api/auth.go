@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"tiago-udemy/internal/mailer"
 	"tiago-udemy/internal/store"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -139,5 +141,71 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	if err := app.jsonResponse(w, http.StatusOK, "User Successfully Activated"); err != nil {
 		app.InternaServerError(w, r, err)
 		return
+	}
+}
+
+type UserLoginPayload struct {
+	Email    string `json:"email" validate:"required,email,max=255"`
+	Password string `json:"password" validate:"required,min=8,max=50"`
+}
+
+// getuser godoc
+//
+//	@Summary		Authenticate the User
+//	@Description	Authenticate the user and return credentials token
+//	@Tags			authentication
+//	@Produce		json
+//	@Param			payload	body		RegisterUserPayload	true	"User registration payload"
+//	@Success		200		{string}	string	"User activated"
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/authentication/activate/{token} [put]
+func (app *application) authUserHandler(w http.ResponseWriter, r *http.Request) {
+	var payload UserLoginPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.InvalidUserAuthorization(w, r, err)
+		return
+	}
+	if err := Validate.Struct(payload); err != nil {
+		app.InvalidUserAuthorization(w, r, err)
+		return
+	}
+	ctx := r.Context()
+	user, err := app.store.Users.GetUserByEmail(ctx, payload.Email)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrRecordNotFound):
+			app.InvalidUserAuthorization(w, r, fmt.Errorf("invalid credentials"))
+			return
+		default:
+			app.InternaServerError(w, r, err)
+			return
+		}
+	}
+
+	err = user.Password.Compare(payload.Password)
+	if err != nil {
+		app.InvalidUserAuthorization(w, r, fmt.Errorf("invalid credentials"))
+		return
+	}
+
+	claims := jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(app.config.authConfig.jwtAuth.exp).Unix(),
+		"iat": time.Now().Unix(),
+		"nbf": time.Now().Unix(),
+		"iss": app.config.authConfig.jwtAuth.iss,
+		"aud": app.config.authConfig.jwtAuth.iss,
+	}
+
+	token, err := app.authenticator.GenerateToken(claims)
+	if err != nil {
+		app.InternaServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusCreated, token); err != nil {
+		app.InternaServerError(w, r, err)
 	}
 }
