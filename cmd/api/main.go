@@ -39,7 +39,7 @@ func main() {
 
 	mailConfig := mailConfig{
 		exp:       env.GetDuration("MAIL_TOKEN_EXPIRATION", 24*time.Hour), // 1 day
-		fromEmail: env.GetString("MAIL_FROM_EMAIL", "hsa@noreply.com"),
+		fromEmail: env.GetString("MAIL_FROM_EMAIL", ""),
 		mailTrapConfig: mailTrapConfig{
 			apiKey: env.GetString("MAILTRAP_API_KEY", ""),
 		},
@@ -72,7 +72,7 @@ func main() {
 
 	//email client
 
-	mailTrapperClient, err := mailer.NewMailTrapClient("123", "123")
+	mailTrapperClient, err := mailer.NewMailTrapClient(mailConfig.mailTrapConfig.apiKey, mailConfig.fromEmail)
 	if err != nil {
 		logger.Fatalf("Cannot create mailtrap client %v", err)
 	}

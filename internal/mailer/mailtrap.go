@@ -25,7 +25,8 @@ func NewMailTrapClient(apiKey, fromEmail string) (mailtrapClient, error) {
 	}, nil
 }
 
-func (m *mailtrapClient) Send(ctx context.Context, templateFile, email, activationURL string, data any) (int, error) {
+func (m *mailtrapClient) Send(ctx context.Context, templateFile, email string, data any) (int, error) {
+
 	tmpl, err := template.ParseFS(FS, "templates/"+templateFile)
 	if err != nil {
 		return -1, err
