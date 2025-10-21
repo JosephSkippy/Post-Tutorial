@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"tiago-udemy/internal/auth"
 	"tiago-udemy/internal/mailer"
 	"tiago-udemy/internal/store"
 
@@ -17,10 +18,11 @@ import (
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.MailClient // this is the mailer interface
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.MailClient // this is the mailer interface
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -30,6 +32,7 @@ type config struct {
 	apiURL      string
 	mail        mailConfig
 	frontendURL string
+	authConfig  authConfig
 }
 
 type mailConfig struct {
@@ -49,6 +52,22 @@ type dbConfig struct {
 	maxIdleTime  string
 }
 
+type authConfig struct {
+	basicAuth basicAuth
+	jwtAuth   jwtAuth
+}
+
+type basicAuth struct {
+	username string
+	password string
+}
+
+type jwtAuth struct {
+	secret string
+	iss    string
+	exp    time.Duration
+}
+
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 
@@ -66,7 +85,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		docsURL := fmt.Sprintf("%s/v1/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
-		r.Get("/health", app.healthCheckHandler)
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
 		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)

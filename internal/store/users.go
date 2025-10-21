@@ -41,6 +41,10 @@ func (p *password) Set(text string) error {
 	return nil
 }
 
+func (p *password) Compare(plainText string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(plainText))
+}
+
 type UsersStore struct {
 	db *sql.DB
 }
@@ -230,4 +234,76 @@ func (s *UsersStore) deleteInvitation(ctx context.Context, tx *sql.Tx, userID in
 		return err
 	}
 	return nil
+}
+
+func (s *UsersStore) Delete(ctx context.Context, id int64) error {
+
+	return withTx(s.db, ctx, func(tx *sql.Tx) error {
+
+		// delete user
+		if err := s.delete(ctx, tx, id); err != nil {
+			return err
+		}
+
+		// delete invitation
+		if err := s.deleteInvitation(ctx, tx, id); err != nil {
+			return err
+		}
+
+		return nil
+
+	})
+}
+
+func (s *UsersStore) delete(ctx context.Context, tx *sql.Tx, id int64) error {
+
+	query := `
+		DELETE FROM users
+		WHERE id = $1
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
+	defer cancel()
+
+	if _, err := tx.ExecContext(ctx, query, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UsersStore) GetUserByEmail(ctx context.Context, emil string) (*User, error) {
+
+	query := `
+			SELECT
+				id,
+				username,
+				email,
+				created_at
+			
+			FROM users WHERE email = $1
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
+	defer cancel()
+
+	var user User
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		emil,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+
+	}
+
+	return &user, nil
 }

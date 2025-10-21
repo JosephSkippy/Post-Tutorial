@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"tiago-udemy/internal/auth"
 	"tiago-udemy/internal/db"
 	"tiago-udemy/internal/env"
 	"tiago-udemy/internal/mailer"
@@ -39,9 +40,21 @@ func main() {
 
 	mailConfig := mailConfig{
 		exp:       env.GetDuration("MAIL_TOKEN_EXPIRATION", 24*time.Hour), // 1 day
-		fromEmail: env.GetString("MAIL_FROM_EMAIL", "hsa@noreply.com"),
+		fromEmail: env.GetString("MAIL_FROM_EMAIL", ""),
 		mailTrapConfig: mailTrapConfig{
 			apiKey: env.GetString("MAILTRAP_API_KEY", ""),
+		},
+	}
+
+	authConfig := authConfig{
+		basicAuth: basicAuth{
+			username: env.GetString("BASIC_USERNAME", ""),
+			password: env.GetString("BASIC_PASSWORD", ""),
+		},
+		jwtAuth: jwtAuth{
+			iss:    env.GetString("JWT_ISSUER", "tiago-udemy"),
+			exp:    env.GetDuration("JWT_EXPIRATION", 1*time.Hour),
+			secret: env.GetString("JWT_SECRET", ""),
 		},
 	}
 
@@ -52,6 +65,7 @@ func main() {
 		apiURL:      env.GetString("API_URL", "localhost:3000"),
 		mail:        mailConfig,
 		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:8080"),
+		authConfig:  authConfig,
 	}
 
 	//logger
@@ -72,16 +86,20 @@ func main() {
 
 	//email client
 
-	mailTrapperClient, err := mailer.NewMailTrapClient("123", "123")
+	mailTrapperClient, err := mailer.NewMailTrapClient(mailConfig.mailTrapConfig.apiKey, mailConfig.fromEmail)
 	if err != nil {
 		logger.Fatalf("Cannot create mailtrap client %v", err)
 	}
 
+	// authentication
+	authenticator := auth.NewJWTAuthenticator(authConfig.jwtAuth.secret, authConfig.jwtAuth.iss, authConfig.jwtAuth.iss)
+
 	app := &application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: &mailTrapperClient,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        &mailTrapperClient,
+		authenticator: authenticator,
 	}
 	mux := app.mount()
 	log.Fatal(app.run(mux))
