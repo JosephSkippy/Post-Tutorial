@@ -42,6 +42,19 @@ definitions:
         maxLength: 100
         type: string
     type: object
+  main.UserLoginPayload:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 50
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
   store.Comment:
     properties:
       comments:
@@ -129,6 +142,34 @@ paths:
             type: string
         "404":
           description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Authenticate the User
+      tags:
+      - authentication
+  /authentication/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate the user and return credentials token
+      parameters:
+      - description: User Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserLoginPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
           schema: {}
         "500":
           description: Internal Server Error
@@ -315,6 +356,96 @@ paths:
       summary: Updates a post
       tags:
       - posts
+  /users/{userID}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a user profile by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.User'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Fetches a user profile
+      tags:
+      - users
+  /users/{userID}/follow:
+    put:
+      consumes:
+      - application/json
+      description: Follows a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User followed
+          schema:
+            type: string
+        "400":
+          description: User payload missing
+          schema: {}
+        "404":
+          description: User not found
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Follows a user
+      tags:
+      - users
+  /users/{userID}/unfollow:
+    put:
+      consumes:
+      - application/json
+      description: Unfollow a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User unfollowed
+          schema:
+            type: string
+        "400":
+          description: User payload missing
+          schema: {}
+        "404":
+          description: User not found
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Unfollow a user
+      tags:
+      - users
 securityDefinitions:
   ApiKeyAuth:
     description: Type "Bearer" followed by a space and JWT token.

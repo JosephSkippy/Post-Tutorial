@@ -149,17 +149,24 @@ type UserLoginPayload struct {
 	Password string `json:"password" validate:"required,min=8,max=50"`
 }
 
-// getuser godoc
+// authUserHandler godoc
 //
 //	@Summary		Authenticate the User
 //	@Description	Authenticate the user and return credentials token
 //	@Tags			authentication
+//	@Accept			json
 //	@Produce		json
+<<<<<<< HEAD
 //	@Param			payload	body		RegisterUserPayload	true	"User registration payload"
 //	@Success		200		{string}	string				"User activated"
 //	@Failure		404		{object}	error
+=======
+//	@Param			payload	body		UserLoginPayload	true	"User Login payload"
+//	@Success		200		{string}	string				"Token"
+//	@Failure		401		{object}	error
+>>>>>>> 57669dd (add middlewares)
 //	@Failure		500		{object}	error
-//	@Router			/authentication/activate/{token} [put]
+//	@Router			/authentication/login [post]
 func (app *application) authUserHandler(w http.ResponseWriter, r *http.Request) {
 	var payload UserLoginPayload
 	if err := readJSON(w, r, &payload); err != nil {
@@ -176,7 +183,9 @@ func (app *application) authUserHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrRecordNotFound):
-			app.InvalidUserAuthorization(w, r, fmt.Errorf("invalid credentials"))
+
+			// change error back to invalid credentials
+			app.InvalidUserAuthorization(w, r, fmt.Errorf("no user found"))
 			return
 		default:
 			app.InternaServerError(w, r, err)

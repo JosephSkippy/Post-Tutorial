@@ -277,9 +277,10 @@ func (s *UsersStore) GetUserByEmail(ctx context.Context, emil string) (*User, er
 				id,
 				username,
 				email,
-				created_at
+				created_at,
+				password
 			
-			FROM users WHERE email = $1
+			FROM users WHERE email = $1 AND is_active = true
 	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
 	defer cancel()
@@ -294,6 +295,7 @@ func (s *UsersStore) GetUserByEmail(ctx context.Context, emil string) (*User, er
 		&user.Username,
 		&user.Email,
 		&user.CreatedAt,
+		&user.Password.hash,
 	)
 	if err != nil {
 		switch {
