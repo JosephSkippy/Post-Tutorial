@@ -48,13 +48,15 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Get the user from the Auth middleware
+	user := getUserCtx(r)
+
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
 
-		// change after Auth
-		UserID: 1,
+		UserID: user.ID,
 	}
 
 	ctx := r.Context()
