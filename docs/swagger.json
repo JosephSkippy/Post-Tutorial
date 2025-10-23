@@ -18,21 +18,23 @@
     "paths": {
         "/authentication/activate/{token}": {
             "put": {
-                "description": "Activates/Register a user by invitation token",
+                "description": "Authenticate the user and return credentials token",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "authentication"
                 ],
-                "summary": "Activates/Register a user",
+                "summary": "Authenticate the User",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Invitation token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true
+                        "description": "User registration payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.RegisterUserPayload"
+                        }
                     }
                 ],
                 "responses": {

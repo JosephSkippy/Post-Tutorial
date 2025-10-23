@@ -156,7 +156,7 @@ type UserLoginPayload struct {
 //	@Tags			authentication
 //	@Produce		json
 //	@Param			payload	body		RegisterUserPayload	true	"User registration payload"
-//	@Success		200		{string}	string	"User activated"
+//	@Success		200		{string}	string				"User activated"
 //	@Failure		404		{object}	error
 //	@Failure		500		{object}	error
 //	@Router			/authentication/activate/{token} [put]

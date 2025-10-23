@@ -112,13 +112,14 @@ info:
 paths:
   /authentication/activate/{token}:
     put:
-      description: Activates/Register a user by invitation token
+      description: Authenticate the user and return credentials token
       parameters:
-      - description: Invitation token
-        in: path
-        name: token
+      - description: User registration payload
+        in: body
+        name: payload
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/main.RegisterUserPayload'
       produces:
       - application/json
       responses:
@@ -132,7 +133,7 @@ paths:
         "500":
           description: Internal Server Error
           schema: {}
-      summary: Activates/Register a user
+      summary: Authenticate the User
       tags:
       - authentication
   /authentication/user:
