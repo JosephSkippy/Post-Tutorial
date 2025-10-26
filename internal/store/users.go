@@ -16,6 +16,7 @@ type User struct {
 	Password    password `json:"-"`
 	CreatedAt   string   `json:"created_at"`
 	IsActivated bool     `json:"is_activated"`
+	Role        Role
 }
 
 type password struct {
@@ -52,15 +53,21 @@ type UsersStore struct {
 func (s *UsersStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 
 	query := `
-			INSERT INTO users (username, email, password)
-			VALUES ($1, $2, $3) RETURNING id, created_at
+			INSERT INTO users (username, email, password, role_id)
+			VALUES ($1, $2, $3, (SELECT id FROM roles WHERE name = $4)) RETURNING id, created_at
 	`
+
+	if user.Role.Name == "" {
+		user.Role.Name = "user"
+	}
+
 	err := tx.QueryRowContext(
 		ctx,
 		query,
 		user.Username,
 		user.Email,
-		user.Password.hash).Scan(
+		user.Password.hash,
+		user.Role.Name).Scan(
 		&user.ID,
 		&user.CreatedAt,
 	)
@@ -83,12 +90,15 @@ func (s *UsersStore) GetUserbyID(ctx context.Context, id int64) (*User, error) {
 
 	query := `
 			SELECT
-				id,
-				username,
-				email,
-				created_at
-			
-			FROM users WHERE id = $1
+				u.id,
+				u.username,
+				u.email,
+				u.created_at,
+				r.id,
+				r.name,
+				r.level
+			FROM users u JOIN roles r on u.role_id = r.id
+			WHERE u.id = $1 
 	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
 	defer cancel()
@@ -103,6 +113,9 @@ func (s *UsersStore) GetUserbyID(ctx context.Context, id int64) (*User, error) {
 		&user.Username,
 		&user.Email,
 		&user.CreatedAt,
+		&user.Role.ID,
+		&user.Role.Name,
+		&user.Role.Level,
 	)
 	if err != nil {
 		switch {

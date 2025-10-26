@@ -26,23 +26,21 @@ const docTemplate = `{
     "paths": {
         "/authentication/activate/{token}": {
             "put": {
-                "description": "Authenticate the user and return credentials token",
+                "description": "Activates/Register a user by invitation token",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "authentication"
                 ],
-                "summary": "Authenticate the User",
+                "summary": "Activates/Register a user",
                 "parameters": [
                     {
-                        "description": "User registration payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.RegisterUserPayload"
-                        }
+                        "type": "string",
+                        "description": "Invitation token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -659,6 +657,20 @@ const docTemplate = `{
                 }
             }
         },
+        "store.Role": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "store.User": {
             "type": "object",
             "properties": {
@@ -673,6 +685,9 @@ const docTemplate = `{
                 },
                 "is_activated": {
                     "type": "boolean"
+                },
+                "role": {
+                    "$ref": "#/definitions/store.Role"
                 },
                 "username": {
                     "type": "string"

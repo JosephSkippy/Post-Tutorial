@@ -40,11 +40,16 @@ type CommentRepository interface {
 	DeleteCommentByPostID(ctx context.Context, post_id int64) error
 }
 
+type RoleRepository interface {
+	HasPermission(ctx context.Context, requiredRole string, userRoleLevel int) (bool, error)
+}
+
 type Storage struct {
 	Posts    PostRepository
 	Users    UserRepository
 	Comment  CommentRepository
 	Follower FollowersRepository
+	Role     RoleRepository
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -53,5 +58,6 @@ func NewStorage(db *sql.DB) Storage {
 		Users:    &UsersStore{db},
 		Comment:  &CommentStore{db},
 		Follower: &FollowerStore{db},
+		Role:     &RoleStore{db},
 	}
 }
