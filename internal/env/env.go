@@ -52,3 +52,20 @@ func GetDuration(key string, fallback time.Duration) time.Duration {
 	// On parse error, use fallback
 	return fallback
 }
+
+func GetBool(key string, fallback bool) bool {
+	val, ok := os.LookupEnv(key)
+
+	if !ok {
+		return fallback
+	}
+
+	valBool, err := strconv.ParseBool(val)
+
+	if err != nil {
+		fmt.Printf("Error, %v", err)
+		return fallback
+	}
+
+	return valBool
+}

@@ -114,6 +114,7 @@ func (app *application) GetTargetUserMiddlewareContext(next http.Handler) http.H
 		targetUserId, err := strconv.ParseInt(targetUserStr, 10, 64)
 		if err != nil {
 			app.StatusBadRequest(w, r, err)
+			return
 		}
 
 		ctx := r.Context()

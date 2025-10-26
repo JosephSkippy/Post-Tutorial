@@ -49,6 +49,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	user := &store.User{
 		Username: payload.Username,
 		Email:    payload.Email,
+		Role:     store.Role{Name: "user"},
 	}
 
 	if err := user.Password.Set(payload.Password); err != nil {
@@ -156,15 +157,9 @@ type UserLoginPayload struct {
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-<<<<<<< HEAD
-//	@Param			payload	body		RegisterUserPayload	true	"User registration payload"
-//	@Success		200		{string}	string				"User activated"
-//	@Failure		404		{object}	error
-=======
 //	@Param			payload	body		UserLoginPayload	true	"User Login payload"
 //	@Success		200		{string}	string				"Token"
 //	@Failure		401		{object}	error
->>>>>>> 57669dd (add middlewares)
 //	@Failure		500		{object}	error
 //	@Router			/authentication/login [post]
 func (app *application) authUserHandler(w http.ResponseWriter, r *http.Request) {

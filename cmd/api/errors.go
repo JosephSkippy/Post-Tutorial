@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -34,4 +35,18 @@ func (app *application) InvalidUserAuthorization(w http.ResponseWriter, r *http.
 	app.logger.Errorw("invalid authorization", "method", r.Method, "path", r.URL.Path, "error", err.Error())
 
 	writeJSONError(w, http.StatusUnauthorized, "invalid authorization")
+}
+
+func (app *application) ForbiddenRequest(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Errorw("Forbidden request", "method", r.Method, "path", r.URL.Path, "error", err.Error())
+
+	writeJSONError(w, http.StatusForbidden, "Forbidden request")
+}
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request, retryAfter string) {
+	app.logger.Warnf("Maximum Attempt reached", "method", r.Method, "path", r.URL.Path)
+
+	w.Header().Set("Retry-After", retryAfter)
+
+	writeJSONError(w, http.StatusUnauthorized, fmt.Sprintf("Maximum Attempted reached, please wait for %v", retryAfter))
 }
