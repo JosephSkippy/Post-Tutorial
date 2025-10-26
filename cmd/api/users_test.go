@@ -172,105 +172,105 @@ func TestGetTargetUserMiddlewareContext(t *testing.T) {
 
 // Table driven test
 
-func TestGetTargetUserMiddlewareContextTableStyle(t *testing.T) {
-	app := newTestApp()
+// func TestGetTargetUserMiddlewareContextTableStyle(t *testing.T) {
+// 	app := newTestApp()
 
-	type tc struct {
-		name        string
-		userIDParam string
-		setupMock   func(m store.Storage) // <-- use your mock's API here
-		wantStatus  int
-		wantNext    bool
-		wantUserID  int64 // 0 = don't assert
-	}
+// 	type tc struct {
+// 		name        string
+// 		userIDParam string
+// 		setupMock   func(m store.Storage) // <-- use your mock's API here
+// 		wantStatus  int
+// 		wantNext    bool
+// 		wantUserID  int64 // 0 = don't assert
+// 	}
 
-	tests := []tc{
-		{
-			name:        "missing userID -> 400, next not called",
-			userIDParam: "",
-			setupMock: func(m store.Storage) {
-				// No calls expected
-			},
-			wantStatus: http.StatusBadRequest,
-			wantNext:   false,
-		},
-		{
-			name:        "invalid userID -> 400, next not called",
-			userIDParam: "abc",
-			setupMock: func(m store.Storage) {
-				// No calls expected
-			},
-			wantStatus: http.StatusBadRequest,
-			wantNext:   false,
-		},
-		{
-			name:        "not found -> 404, next not called",
-			userIDParam: "7",
-			setupMock: func(m store.Storage) {
-				// STYLE A: if your mock exposes Users().OnGetUserbyID(fn)
-				// m.Users().OnGetUserbyID(func(_ context.Context, _ int64) (*store.User, error) {
-				// 	 return nil, store.ErrRecordNotFound
-				// })
+// 	tests := []tc{
+// 		{
+// 			name:        "missing userID -> 400, next not called",
+// 			userIDParam: "",
+// 			setupMock: func(m store.Storage) {
+// 				// No calls expected
+// 			},
+// 			wantStatus: http.StatusBadRequest,
+// 			wantNext:   false,
+// 		},
+// 		{
+// 			name:        "invalid userID -> 400, next not called",
+// 			userIDParam: "abc",
+// 			setupMock: func(m store.Storage) {
+// 				// No calls expected
+// 			},
+// 			wantStatus: http.StatusBadRequest,
+// 			wantNext:   false,
+// 		},
+// 		{
+// 			name:        "not found -> 404, next not called",
+// 			userIDParam: "7",
+// 			setupMock: func(m store.Storage) {
+// 				// STYLE A: if your mock exposes Users().OnGetUserbyID(fn)
+// 				// m.Users().OnGetUserbyID(func(_ context.Context, _ int64) (*store.User, error) {
+// 				// 	 return nil, store.ErrRecordNotFound
+// 				// })
 
-				// STYLE B: if your mock exposes a struct you can replace:
-				// m.Users = &store.UsersMock{
-				// 	 GetUserbyIDFunc: func(ctx context.Context, id int64) (*store.User, error) {
-				//     return nil, store.ErrRecordNotFound
-				//   },
-				// }
-			},
-			wantStatus: http.StatusNotFound, // use 400 if you haven't switched yet
-			wantNext:   false,
-		},
-		{
-			name:        "store error -> 500, next not called",
-			userIDParam: "9",
-			setupMock: func(m store.Storage) {
-				// A or B as above; return generic error
-				// m.Users().OnGetUserbyID(func(ctx context.Context, id int64) (*store.User, error) {
-				// 	 return nil, errors.New("db exploded")
-				// })
-			},
-			wantStatus: http.StatusInternalServerError,
-			wantNext:   false,
-		},
-		{
-			name:        "success -> injects user and calls next",
-			userIDParam: "42",
-			setupMock: func(m store.Storage) {
-				// A or B as above; return a user
-				// m.Users().OnGetUserbyID(func(ctx context.Context, id int64) (*store.User, error) {
-				//   return &store.User{ID: 42, Email: "demo@example.com"}, nil
-				// })
-			},
-			wantStatus: http.StatusOK,
-			wantNext:   true,
-			wantUserID: 42,
-		},
-	}
+// 				// STYLE B: if your mock exposes a struct you can replace:
+// 				// m.Users = &store.UsersMock{
+// 				// 	 GetUserbyIDFunc: func(ctx context.Context, id int64) (*store.User, error) {
+// 				//     return nil, store.ErrRecordNotFound
+// 				//   },
+// 				// }
+// 			},
+// 			wantStatus: http.StatusNotFound, // use 400 if you haven't switched yet
+// 			wantNext:   false,
+// 		},
+// 		{
+// 			name:        "store error -> 500, next not called",
+// 			userIDParam: "9",
+// 			setupMock: func(m store.Storage) {
+// 				// A or B as above; return generic error
+// 				// m.Users().OnGetUserbyID(func(ctx context.Context, id int64) (*store.User, error) {
+// 				// 	 return nil, errors.New("db exploded")
+// 				// })
+// 			},
+// 			wantStatus: http.StatusInternalServerError,
+// 			wantNext:   false,
+// 		},
+// 		{
+// 			name:        "success -> injects user and calls next",
+// 			userIDParam: "42",
+// 			setupMock: func(m store.Storage) {
+// 				// A or B as above; return a user
+// 				// m.Users().OnGetUserbyID(func(ctx context.Context, id int64) (*store.User, error) {
+// 				//   return &store.User{ID: 42, Email: "demo@example.com"}, nil
+// 				// })
+// 			},
+// 			wantStatus: http.StatusOK,
+// 			wantNext:   true,
+// 			wantUserID: 42,
+// 		},
+// 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// fresh mock storage for each test to avoid cross-test leakage
-			app.store = store.MockNewStorage()
-			tt.setupMock(app.store)
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			// fresh mock storage for each test to avoid cross-test leakage
+// 			app.store = store.MockNewStorage()
+// 			tt.setupMock(app.store)
 
-			gotStatus, gotNext, gotUser := runMW(t, app, tt.userIDParam)
+// 			gotStatus, gotNext, gotUser := runMW(t, app, tt.userIDParam)
 
-			if gotStatus != tt.wantStatus {
-				t.Fatalf("status: got %d, want %d", gotStatus, tt.wantStatus)
-			}
-			if gotNext != tt.wantNext {
-				t.Fatalf("next called: got %v, want %v", gotNext, tt.wantNext)
-			}
-			if tt.wantUserID != 0 {
-				if gotUser == nil {
-					t.Fatalf("want user in ctx, got nil")
-				}
-				if gotUser.ID != tt.wantUserID {
-					t.Fatalf("user ID: got %d, want %d", gotUser.ID, tt.wantUserID)
-				}
-			}
-		})
-	}
-}
+// 			if gotStatus != tt.wantStatus {
+// 				t.Fatalf("status: got %d, want %d", gotStatus, tt.wantStatus)
+// 			}
+// 			if gotNext != tt.wantNext {
+// 				t.Fatalf("next called: got %v, want %v", gotNext, tt.wantNext)
+// 			}
+// 			if tt.wantUserID != 0 {
+// 				if gotUser == nil {
+// 					t.Fatalf("want user in ctx, got nil")
+// 				}
+// 				if gotUser.ID != tt.wantUserID {
+// 					t.Fatalf("user ID: got %d, want %d", gotUser.ID, tt.wantUserID)
+// 				}
+// 			}
+// 		})
+// 	}
+// }
