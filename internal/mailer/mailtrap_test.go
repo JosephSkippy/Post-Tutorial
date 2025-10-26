@@ -60,7 +60,7 @@ func TestMailtrapClient_Send_TemplateProcessing(t *testing.T) {
 }
 
 func TestMailtrapClient_Send_InvalidTemplate(t *testing.T) {
-	client, err := NewMailTrapClient("c52bdad0a3dd8628e54d0ef69d4ff646", "noreply@hello@demomailtrap.co")
+	client, err := NewMailTrapClient("c52bdad0a3dd8628e54d0ef69d4ff646", "hello@demomailtrap.co")
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -72,5 +72,5 @@ func TestMailtrapClient_Send_InvalidTemplate(t *testing.T) {
 
 	assert.Error(t, err)
 	// Should be a template parsing error
-	assert.Contains(t, err.Error(), "no such file") // or similar template error
+	assert.Contains(t, err.Error(), "pattern matches no files") // or similar template error
 }
